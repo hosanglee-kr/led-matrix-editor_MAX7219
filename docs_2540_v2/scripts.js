@@ -32,13 +32,6 @@ $(function () {
 
         var moduleCol = Math.floor(globalX / 8); // 모듈의 가로 위치 (0 to N-1)
         var moduleRow = Math.floor(globalY / 8); // 모듈의 세로 위치 (0 to M-1)
-
-        // 캐스케이드 순서에 따라 모듈 주소 계산.
-        // 예를 들어, 왼쪽에서 오른쪽, 위에서 아래로 순서대로 연결된 경우:
-        // 0  1  2 ... N-1
-        // N N+1 ... 2N-1
-        // ...
-        // (M-1)N ... MN-1
         var moduleIndex = moduleRow * NUM_COLS_MATRIX + moduleCol;
 
         var localX = globalX % 8; // 모듈 내의 X 좌표 (0-7)
@@ -142,27 +135,7 @@ $(function () {
                 out.push('  {');
                 for (var m = 0; m < numModules; m++) {
                     var pattern = modulePatterns[m] || '0000000000000000';
-                    // 각 8x8 패턴의 바이트를 역순으로 (컬럼 0-7)
-                    // 현재 패턴은 이미 LSB first로 되어있다고 가정합니다.
-                    // 즉, pattern.substr(0, 2)는 col7, pattern.substr(14, 2)는 col0
-                    // 이를 0x7E1818181C181800 이라는 패턴으로 예를 들면:
-                    // 7E (col7), 18 (col6), ..., 00 (col0)
-                    // 따라서 배열에 넣을 때는 00, 18, 18, 1C, 18, 18, 18, 7E 순서로 저장해야 합니다.
-                    // 웹 에디터가 16진수 입력/출력에서 '0000000000000000' (MSB first)로 처리하고 있다면
-                    // pattern.substr(2*j, 2)는 col_j의 바이트를 의미합니다.
-                    // 이 경우 for (var j = 0; j < 8; j++) {
-                    //    var byteVal = parseInt(pattern.substr(2 * j, 2), 16);
-                    //    out.push('0x' + ('00' + byteVal.toString(16)).slice(-2).toUpperCase());
-                    // } 로 변경해야 합니다.
-                    // 현재 코드는 `pattern.substr(-2 * j, 2)` (즉, 뒤에서부터 읽는) 방식으로 되어 있으므로
-                    // 16진수 문자열이 '0000000000000000' 일 때, 첫 2자리는 최하위 컬럼을 나타내고
-                    // 마지막 2자리는 최상위 컬럼을 나타낸다고 가정한 상태입니다.
-                    // 이 가정을 유지하겠습니다.
-
-                    // 기존 코드를 LSB first byte 배열로 그대로 변환합니다.
-                    // 즉, 0x7E1818181C181800 에서 00이 첫 번째 바이트 (col0)
-                    // 7E가 여덟 번째 바이트 (col7) 로 들어갑니다.
-                    // 이를 위해 `pattern.substr(-2 * (j + 1), 2)` 를 사용해야 합니다.
+                
                     for (var j = 0; j < 8; j++) { // LSB (col0) 부터 MSB (col7) 순서로 바이트를 배열에 추가
                          var byteStr = pattern.substr(14 - (j * 2), 2); // 00이 14,15 인덱스
                          var byteVal = parseInt(byteStr, 16);
@@ -314,14 +287,7 @@ $(function () {
                             bytes.push(currentModulePattern.substr(i * 2, 2));
                         }
 
-                        // 웹 에디터의 16진수 패턴은 `pattern.substr(-2 * i, 2)` (i는 1부터 8) 방식으로
-                        // 로우 데이터를 추출하고, 이는 다시 말해 16진수 문자열이 `Col7Col6Col5Col4Col3Col2Col1Col0` 순서로 저장된 것입니다.
-                        // 즉, pattern의 첫 두 글자(인덱스 0,1)가 Col7, 마지막 두 글자(인덱스 14,15)가 Col0 입니다.
-                        // 따라서 특정 localX에 해당하는 바이트를 찾으려면, 인덱스 계산을 정확히 해야 합니다.
-                        // localX가 0일 때 Col0, localX가 7일 때 Col7
-                        // Col0의 바이트는 인덱스 14,15
-                        // Col7의 바이트는 인덱스 0,1
-                        // 인덱스는 (7 - localX) * 2 입니다.
+                        
                         var byteCharIndex = (7 - localX) * 2;
                         var currentByte = parseInt(currentModulePattern.substr(byteCharIndex, 2), 16);
                         
@@ -357,14 +323,7 @@ $(function () {
             var startGlobalY = moduleRow * 8;
 
             for (var i = 0; i < 8; i++) { // 로우 (Y)
-                // 16진수 문자열에서 특정 컬럼(X)에 해당하는 바이트를 가져옵니다.
-                // 위 ledsToHex() 함수에서 `pattern.substr(14 - (j * 2), 2)` 방식으로 바이트를 저장했으므로,
-                // 이를 다시 읽을 때는 `pattern.substr(14 - (localX * 2), 2)` 방식으로 읽어야 합니다.
-                // 그러나 hexInputToLeds()는 전체 픽셀을 순회하며 localX, localY를 계산하므로
-                // `pattern.substr(-2 * (col_idx + 1), 2)` 방식으로 원래대로 해석할 수 있습니다.
-                // 16진수 패턴은 `Col7Col6...Col0` 순서로 저장되어 있다고 가정합니다.
-                // `pattern.substr(-2 * (i + 1), 2)`는 `Col_i`의 바이트를 가져옵니다.
-                // (i=0 -> Col0, i=1 -> Col1, ..., i=7 -> Col7)
+                
                 var byte = modulePattern.substr(14 - (i * 2), 2); // pattern.substr(14,2)는 col0, pattern.substr(0,2)는 col7
                 byte = parseInt(byte, 16);
 
@@ -546,21 +505,6 @@ $(function () {
 
     $applyMatrixSizeButton.click(function() {
         drawMatrixUI();
-        // 매트릭스 크기 변경 시에도 모든 프레임을 새 크기에 맞게 업데이트 (선택 사항)
-        // 이 부분은 기존 프레임 데이터를 새 크기에 맞게 재구성하는 추가 로직이 필요할 수 있습니다.
-        // 현재는 UI만 다시 그립니다.
-        // 예를 들어:
-        // var currentPatterns = framesToPatterns();
-        // var newPatterns = [];
-        // for(var i=0; i<currentPatterns.length; i++) {
-        //     newPatterns.push(converter.fixPattern(currentPatterns[i])); // 새 NUM_COLS_MATRIX, NUM_ROWS_MATRIX에 맞춰 패딩/잘라내기
-        // }
-        // $frames.empty();
-        // for(var i=0; i<newPatterns.length; i++) {
-        //     $frames.append(makeFrameElement(newPatterns[i]));
-        // }
-        // var $firstFrame = $frames.find('.frame-container').first();
-        // processToSave($firstFrame.length ? $firstFrame : insertNewEmptyFrame());
     });
 
     $hexInputApplyButton.click(function() {
