@@ -377,7 +377,7 @@ $(function () {
             insertNewEmptyFrame();
             var $firstFrame = $frames.find('.frame-container').first();
             processToSave($firstFrame);
-            hexInputToLeds();
+            // hexInputToLeds(); // loadState에서 초기 로드 시 이미 processToSave에서 호출
             return;
         }
 
@@ -388,7 +388,7 @@ $(function () {
         var $firstFrame = $frames.find('.frame-container').first();
         if ($firstFrame.length) {
             processToSave($firstFrame);
-            hexInputToLeds();
+            // hexInputToLeds(); // loadState에서 초기 로드 시 이미 processToSave에서 호출
         }
     }
 
@@ -401,7 +401,7 @@ $(function () {
         var $clickedFrameContainer = $(this);
         $hexInput.val($clickedFrameContainer.attr('data-hex'));
         processToSave($clickedFrameContainer);
-        hexInputToLeds();
+        // hexInputToLeds(); // processToSave 내부에서 이미 호출됨
     }
 
     function processToSave($focusToFrame) {
@@ -417,7 +417,14 @@ $(function () {
             $updateButton.attr('disabled', 'disabled');
             $hexInput.val('');
         }
-        saveState();
+        
+        // --- ★ 중요 수정 사항 ★ ---
+        // processToSave가 호출될 때마다 hexInputToLeds를 호출하여 에디트 매트릭스를 업데이트합니다.
+        // 이는 프레임 선택, 삽입, 삭제, 업데이트 등 모든 상태 변경 시 매트릭스가 동기화되도록 합니다.
+        hexInputToLeds(); 
+        // --- ★ 중요 수정 사항 끝 ★ ---
+
+        saveState(); // saveState는 printCode와 hash 업데이트를 포함
     }
 
     function drawMatrixUI() {
@@ -466,7 +473,7 @@ $(function () {
             saveState();
         });
 
-        hexInputToLeds();
+        hexInputToLeds(); // UI 드로잉 후 현재 Hex 값으로 LED 매트릭스 초기화
     }
 
     $numColsMatrix.on('change', function () {
@@ -483,7 +490,7 @@ $(function () {
             var currentHex = $selectedFrame.attr('data-hex');
             var newPaddedHex = converter.fixPattern(currentHex);
             $hexInput.val(newPaddedHex);
-            hexInputToLeds();
+            // hexInputToLeds(); // processToSave에서 호출
             $selectedFrame.attr('data-hex', newPaddedHex);
             
             var $updatedFrameElement = makeFrameElement(newPaddedHex);
@@ -493,15 +500,15 @@ $(function () {
         } else {
             var $newFrame = insertNewEmptyFrame();
             processToSave($newFrame);
-            hexInputToLeds();
+            // hexInputToLeds(); // processToSave에서 호출
         }
-        saveState();
+        // saveState(); // processToSave에서 호출
     });
 
     $hexInputApplyButton.click(function () {
         var newHexValue = getInputHexValue();
         $hexInput.val(newHexValue);
-        hexInputToLeds();
+        // hexInputToLeds(); // processToSave에서 호출
         var $selectedFrame = $frames.find('.frame-container.selected').first();
         if ($selectedFrame.length) {
             $selectedFrame.attr('data-hex', newHexValue);
@@ -509,8 +516,13 @@ $(function () {
             $selectedFrame.replaceWith($updatedFrameElement);
             
             processToSave($updatedFrameElement);
+        } else {
+            // 선택된 프레임이 없을 경우 새 프레임으로 추가하고 선택
+            var $newFrame = makeFrameElement(newHexValue);
+            $frames.append($newFrame);
+            processToSave($newFrame);
         }
-        saveState();
+        // saveState(); // processToSave에서 호출
     });
 
     function insertNewEmptyFrame() {
@@ -687,7 +699,7 @@ $(function () {
         }
 
         processToSave($nextFrame);
-        hexInputToLeds();
+        // hexInputToLeds(); // processToSave 내부에서 이미 호출됨
     });
 
     $insertButton.click(function () {
@@ -706,13 +718,14 @@ $(function () {
     $updateButton.click(function () {
         var $selectedFrame = $frames.find('.frame-container.selected').first();
         if ($selectedFrame.length) {
-            var currentHex = ledsToHex();
+            var currentHex = ledsToHex(); // 현재 LED 매트릭스 상태를 16진수로 변환
             
             $selectedFrame.attr('data-hex', currentHex);
             var $updatedFrameElement = makeFrameElement(currentHex);
             $selectedFrame.replaceWith($updatedFrameElement);
             
             processToSave($updatedFrameElement);
+            // hexInputToLeds(); // processToSave에서 호출
         }
     });
 
@@ -760,10 +773,6 @@ $(function () {
         $body.removeClass('red-leds yellow-leds green-leds blue-leds white-leds').addClass(themeName);
     }
 
-    // function setPageTheme(themeName) {
-    //     $body.removeClass('plain-theme circuit-theme').addClass(themeName);
-    // }
-
     var playInterval;
 
     $('#play-button').click(function () {
@@ -796,8 +805,17 @@ $(function () {
 
                 if ($nextFrame.length) {
                     $hexInput.val($nextFrame.attr('data-hex'));
-                    processToSave($nextFrame);
-                    hexInputToLeds();
+                    // --- ★ 중요 수정 사항 ★ ---
+                    // 재생 중에도 매트릭스가 업데이트되도록 hexInputToLeds를 호출합니다.
+                    hexInputToLeds(); 
+                    // processToSave($nextFrame); // 이것도 호출해서 선택된 프레임을 업데이트하고 saveState도 호출
+                    // 하지만 재생 중에는 saveState를 호출하여 브라우저 히스토리를 변경하는 것은 원치 않을 수 있으므로,
+                    // 선택된 프레임 표시만 업데이트하고 hexInputToLeds를 명시적으로 호출하는 것이 더 적합합니다.
+                    // 만약 재생 중에 URL 해시가 업데이트되고 코드 출력도 실시간으로 변경되기를 원한다면 processToSave($nextFrame)를 사용해도 됩니다.
+                    // 여기서는 사용자의 의도에 따라 재생 시 매트릭스만 업데이트하고 URL 해시는 변경하지 않도록 수정했습니다.
+                    $frames.find('.frame-container.selected').removeClass('selected');
+                    $nextFrame.addClass('selected');
+                    // --- ★ 중요 수정 사항 끝 ★ ---
                 }
 
                 nextPlayIndex = (nextPlayIndex + 1) % $allFrames.length;
@@ -824,11 +842,7 @@ $(function () {
         NUM_ROWS_MATRIX = parseInt($numRowsMatrix.val());
 
         drawMatrixUI();
-        loadState();
-
-        // 페이지 테마 로드
-        // var pageTheme = Cookies.get('page-theme') || 'circuit-theme';
-        // setPageTheme(pageTheme);
+        loadState(); // loadState 내부에서 processToSave가 호출되며, processToSave는 hexInputToLeds를 호출합니다.
     }
 
     initialize();
