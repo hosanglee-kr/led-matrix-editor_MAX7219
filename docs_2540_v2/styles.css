@@ -2,10 +2,17 @@ body {
     background: #eee;
     user-select: none;
     -webkit-user-select: none;
+    /* 한국어 폰트 추가 (선택 사항) */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Sans KR";
 }
 
-#cols-list,
-#rows-list,
+/* Matrix & LED Styles */
+/* #cols-list는 더 이상 사용되지 않으며, #cols-list-global로 변경되었습니다. */
+/* #rows-list는 더 이상 사용되지 않으며, #rows-list-global로 변경되었습니다. */
+#cols-list-global,
+#rows-list-global,
 #leds-matrix {
     font-family: "Bitstream Vera Sans Mono", Monaco, "Courier New", Courier, monospace;
     border-spacing: 5px;
@@ -13,8 +20,8 @@ body {
 }
 
 #leds-matrix .item,
-#cols-list .item,
-#rows-list .item {
+#cols-list-global .item,
+#rows-list-global .item {
     width: 25px;
     min-width: 25px;
     max-width: 25px;
@@ -38,11 +45,12 @@ body {
     box-shadow: 1px 1px 10px #333;
 }
 
+/* LED Color Themes */
 body.red-leds #matrix-toggle:hover,
-body.red-leds #cols-list .item:hover,
-body.red-leds #rows-list .item:hover,
-body.red-leds #cols-list .item.hover,
-body.red-leds #rows-list .item.hover {
+body.red-leds #cols-list-global .item:hover,
+body.red-leds #rows-list-global .item:hover,
+body.red-leds #cols-list-global .item.hover,
+body.red-leds #rows-list-global .item.hover {
     color: #ff3333;
     font-weight: bold;
 }
@@ -54,10 +62,10 @@ body.red-leds #leds-matrix .item.active {
 }
 
 body.yellow-leds #matrix-toggle:hover,
-body.yellow-leds #cols-list .item:hover,
-body.yellow-leds #rows-list .item:hover,
-body.yellow-leds #cols-list .item.hover,
-body.yellow-leds #rows-list .item.hover {
+body.yellow-leds #cols-list-global .item:hover,
+body.yellow-leds #rows-list-global .item:hover,
+body.yellow-leds #cols-list-global .item.hover,
+body.yellow-leds #rows-list-global .item.hover {
     color: #ffcc33;
     font-weight: bold;
 }
@@ -69,10 +77,10 @@ body.yellow-leds #leds-matrix .item.active {
 }
 
 body.green-leds #matrix-toggle:hover,
-body.green-leds #cols-list .item:hover,
-body.green-leds #rows-list .item:hover,
-body.green-leds #cols-list .item.hover,
-body.green-leds #rows-list .item.hover {
+body.green-leds #cols-list-global .item:hover,
+body.green-leds #rows-list-global .item:hover,
+body.green-leds #cols-list-global .item.hover,
+body.green-leds #rows-list-global .item.hover {
     color: #33ff33;
     font-weight: bold;
 }
@@ -84,10 +92,10 @@ body.green-leds #leds-matrix .item.active {
 }
 
 body.blue-leds #matrix-toggle:hover,
-body.blue-leds #cols-list .item:hover,
-body.blue-leds #rows-list .item:hover,
-body.blue-leds #cols-list .item.hover,
-body.blue-leds #rows-list .item.hover {
+body.blue-leds #cols-list-global .item:hover,
+body.blue-leds #rows-list-global .item:hover,
+body.blue-leds #cols-list-global .item.hover,
+body.blue-leds #rows-list-global .item.hover {
     color: #0033ff;
     font-weight: bold;
 }
@@ -99,10 +107,10 @@ body.blue-leds #leds-matrix .item.active {
 }
 
 body.white-leds #matrix-toggle:hover,
-body.white-leds #cols-list .item:hover,
-body.white-leds #rows-list .item:hover,
-body.white-leds #cols-list .item.hover,
-body.white-leds #rows-list .item.hover {
+body.white-leds #cols-list-global .item:hover,
+body.white-leds #rows-list-global .item:hover,
+body.white-leds #cols-list-global .item.hover,
+body.white-leds #rows-list-global .item.hover {
     color: #ffffff;
     font-weight: bold;
 }
@@ -113,6 +121,7 @@ body.white-leds #leds-matrix .item.active {
     background: #ffffff radial-gradient(ellipse at 42% 42%, #ffffff 0%, #eeeeee 25%, #ffffff 50%);
 }
 
+/* Player & Shift Buttons */
 #player {
     display: inline-block;
     padding: 10px;
@@ -187,46 +196,96 @@ body.white-leds #leds-matrix .item.active {
     margin-left: 25px;
 }
 
+/* Frame List (Animation Frames) - 높이 증가 및 세로 스크롤 적용 */
 #frames {
     padding: 5px;
-    height: 160px;
-    overflow-y: scroll;
+    height: 250px; /* 원하는 높이로 조절 (예: 250px) */
+    overflow-y: auto; /* 내용이 넘칠 때 세로 스크롤바 표시 */
     text-align: left;
     border: solid #666666 1px;
-    background: #ccc linear-gradient(#ccc, #aaa)
+    background: #ccc linear-gradient(#ccc, #aaa);
+    border-radius: 5px; /* 둥근 모서리 추가 */
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.2); /* 내부 그림자 효과 추가 */
 }
 
-#frames .frame {
-    margin: 2px;
+#frames .frame-container { /* 각 프레임 컨테이너에 대한 스타일 (클릭 가능 영역) */
     display: inline-block;
-    background-color: #333;
+    margin: 5px; /* 프레임 간 간격 */
+    border: 3px solid transparent; /* 선택 안된 상태에서는 투명 테두리 */
+    vertical-align: top; /* 상단 정렬 */
+    cursor: pointer;
+    border-radius: 5px; /* 프레임 컨테이너 둥근 모서리 */
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2); /* 은은한 그림자 */
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* 부드러운 전환 효과 */
+}
+
+#frames .frame-container.selected {
+    border-color: #3399ff; /* 선택된 프레임 테두리 색상 */
+    box-shadow: 0 0 10px rgba(51, 153, 255, 0.5); /* 선택 시 강조 그림자 */
+}
+
+#frames .frame-container:hover {
+    border-color: #66ccff; /* 호버 시 테두리 색상 변경 */
+    box-shadow: 0 0 8px rgba(51, 153, 255, 0.3); /* 호버 시 그림자 */
+}
+
+#frames .frame-grid { /* N x M 모듈을 감싸는 테이블 */
     border-spacing: 2px;
     border-collapse: separate;
-    border: solid #ccc 3px;
+    background-color: #333;
+    padding: 2px; /* 모듈 간 간격 조정을 위한 패딩 */
+    border-radius: 3px; /* 약간의 둥근 모서리 */
 }
 
-#frames .frame .item {
-    width: 7px;
-    height: 7px;
+#frames .sub-frame-cell { /* 각 8x8 모듈이 들어가는 셀 */
+    padding: 0; /* 내부 패딩 제거 */
+    border: none;
+}
+
+#frames .sub-frame { /* 8x8 모듈 자체 (기존 .frame) */
+    margin: 0; /* 내부 마진 제거 */
+    display: inline-block; /* 기존 .frame의 inline-block 유지 */
+    background-color: #333;
+    border-spacing: 1px; /* 작은 픽셀 간격 */
+    border-collapse: separate;
+    border: none; /* 컨테이너에서 테두리를 처리하므로 여기서는 제거 */
+}
+
+#frames .sub-frame .item { /* 8x8 모듈 내의 작은 픽셀 */
+    width: 5px; /* 작은 픽셀 크기 조정 (원래 7px에서 5px로 줄여 더 많은 프레임 표시) */
+    height: 5px;
     border-radius: 50%;
     box-shadow: inset 0 0 1px #333333;
     background: #808080;
 }
 
-#frames .frame.selected {
-    border-color: #3399ff;
+/* @media 쿼리 (선택 사항 - 필요한 경우 추가) */
+/*
+@media only screen and (min-height: 900px) {
+    #frames {
+        height: 400px; /* 더 큰 화면에서는 더 높은 높이 */
+    }
 }
+*/
 
+/* Code Output */
 #output {
     font-family: "Bitstream Vera Sans Mono", Monaco, "Courier New", Courier, monospace;
-    resize: none;
-    padding: 5px;
+    resize: vertical; /* 사용자가 세로로만 크기 조절 가능하도록 */
+    padding: 10px; /* 내부 여백 증가 */
     height: 280px;
-    overflow-y: scroll;
+    min-height: 150px; /* 최소 높이 */
+    max-height: 500px; /* 최대 높이 */
+    overflow-y: auto; /* 스크롤바 자동 표시 */
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+    line-height: 1.4; /* 줄 간격 조절 */
+    background-color: #f8f8f8;
+    color: #333;
 }
 
-/*Themes*/
-
+/* Themes*/
 .circuit-theme #circuit {
     background-image: url('img/circuit.jpg');
     padding: 5px;
@@ -250,7 +309,6 @@ body.white-leds #leds-matrix .item.active {
     background-color: #26477a;
     border: solid 1px #547eae;
     box-shadow: 10px 10px 10px #333;
-
 }
 
 .circuit-theme #player label,
@@ -259,3 +317,35 @@ body.white-leds #leds-matrix .item.active {
 .circuit-theme #edit-buttons-container label {
     color: white;
 }
+
+/* 반응형 디자인을 위한 작은 화면 조정 예시 (필요시 활성화 및 조정) */
+/*
+@media (max-width: 767px) {
+    #num-cols-matrix,
+    #num-rows-matrix {
+        width: 50px !important;
+        margin-right: 5px !important;
+    }
+    #apply-matrix-size {
+        font-size: 12px;
+        padding: 5px 8px;
+    }
+    #hex-input {
+        width: 100px;
+    }
+    #insert-button, #update-button, #delete-button {
+        width: 60px;
+        margin: 0 5px;
+        font-size: 12px;
+    }
+    #circuit-theme {
+        margin-left: 10px;
+    }
+    .navbar-brand {
+        font-size: 16px;
+    }
+    .navbar-text {
+        font-size: 10px;
+    }
+}
+*/
