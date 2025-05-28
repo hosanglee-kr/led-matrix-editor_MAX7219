@@ -1,4 +1,5 @@
-// (2025-04-29) 소스코드 출력시 컴파일 오류 유발하는 유니코드 공백문자, byte order mark 등을 빠짐없이 제거해줘.
+// scripts.js
+
 $(function () {
     var $body = $('body');
     var $frames = $('#frames');
