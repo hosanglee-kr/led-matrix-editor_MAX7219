@@ -1,10 +1,8 @@
-// scripts.js
-
 $(function () {
     var $body = $('body');
     var $frames = $('#frames');
     var $hexInput = $('#hex-input');
-    var $insertButton = $('#insert-button');
+    var $insertButton = $('#$('#insert-button');
     var $deleteButton = $('#delete-button');
     var $updateButton = $('#update-button');
     var $numColsMatrix = $('#num-cols-matrix');
@@ -14,6 +12,9 @@ $(function () {
 
     var $outputFormatByte = $('#output-format-byte');
     var $outputFormatHex = $('#output-format-hex');
+
+    var $rotateCwButton = $('#rotate-cw-button');
+    var $rotateCcwButton = $('#rotate-ccw-button');
 
     var $leds, $colsGlobal, $rowsGlobal;
 
@@ -190,6 +191,46 @@ $(function () {
         }
     };
 
+    function rotateClockwise(pattern) {
+        let bytes = [];
+        for (let i = 0; i < 8; i++) {
+            bytes.push(parseInt(pattern.substring(i * 2, i * 2 + 2), 16));
+        }
+
+        let newBytes = Array(8).fill(0);
+
+        for (let x = 0; x < 8; x++) {
+            for (let y = 0; y < 8; y++) {
+                if ((bytes[x] >> y) & 1) {
+                    let newX = 7 - y;
+                    let newY = x;
+                    newBytes[newX] |= (1 << newY);
+                }
+            }
+        }
+        return newBytes.map(b => ('0' + b.toString(16)).slice(-2)).join('').toUpperCase();
+    }
+
+    function rotateCounterClockwise(pattern) {
+        let bytes = [];
+        for (let i = 0; i < 8; i++) {
+            bytes.push(parseInt(pattern.substring(i * 2, i * 2 + 2), 16));
+        }
+
+        let newBytes = Array(8).fill(0);
+
+        for (let x = 0; x < 8; x++) {
+            for (let y = 0; y < 8; y++) {
+                if ((bytes[x] >> y) & 1) {
+                    let newX = y;
+                    let newY = 7 - x;
+                    newBytes[newX] |= (1 << newY);
+                }
+            }
+        }
+        return newBytes.map(b => ('0' + b.toString(16)).slice(-2)).join('').toUpperCase();
+    }
+
     function makeFrameElement(fullPattern) {
         fullPattern = converter.fixPattern(fullPattern);
         var $frame = $(converter.patternToFrame(fullPattern));
@@ -271,7 +312,6 @@ $(function () {
                 code = converter.patternsToCodeCppHexArray(patterns);
             }
             
-            // 유니코드 공백문자 및 BOM 제거
             if (code) {
                 code = code.replace(/[\u0000-\u001F\u007F-\u009F\uFEFF]/g, '');
                 code = code.replace(/\0/g, '');
@@ -576,7 +616,7 @@ $(function () {
                     if (c === 7) {
                         shiftedLeds[c][r] = false;
                     } else {
-                        shiftedLeds[c][r] = currentModuleLeds[c + 1][r];
+                        shiftedLleds[c][r] = currentModuleLeds[c + 1][r];
                     }
                 }
             }
@@ -592,6 +632,32 @@ $(function () {
                 out.push(('00' + newByte.toString(16)).substr(-2).toUpperCase());
             }
             newModulePatterns[m] = out.join('');
+        }
+        $hexInput.val(newModulePatterns.join('|'));
+        hexInputToLeds();
+        saveState();
+    });
+
+    $rotateCwButton.click(function () {
+        var currentFullPattern = getInputHexValue();
+        var modulePatterns = currentFullPattern.split('|');
+        var newModulePatterns = Array(modulePatterns.length).fill('');
+
+        for (var m = 0; m < modulePatterns.length; m++) {
+            newModulePatterns[m] = rotateClockwise(modulePatterns[m]);
+        }
+        $hexInput.val(newModulePatterns.join('|'));
+        hexInputToLeds();
+        saveState();
+    });
+
+    $rotateCcwButton.click(function () {
+        var currentFullPattern = getInputHexValue();
+        var modulePatterns = currentFullPattern.split('|');
+        var newModulePatterns = Array(modulePatterns.length).fill('');
+
+        for (var m = 0; m < modulePatterns.length; m++) {
+            newModulePatterns[m] = rotateCounterClockwise(modulePatterns[m]);
         }
         $hexInput.val(newModulePatterns.join('|'));
         hexInputToLeds();
@@ -648,13 +714,11 @@ $(function () {
         }
     });
 
-    // 출력 언어 라디오 버튼 변경 시
     $('input[name="output_lang"]').change(function () {
         var patterns = framesToPatterns();
         printCode(patterns);
     });
 
-    // 출력 형식 라디오 버튼 변경 시
     $('input[name="output_format_type"]').change(function () {
         var patterns = framesToPatterns();
         printCode(patterns);
@@ -753,8 +817,12 @@ $(function () {
 
         drawMatrixUI();
         loadState();
+        if (typeof loadAndRenderLibrary === 'function') {
+            loadAndRenderLibrary(); 
+        } else {
+            console.error("loadAndRenderLibrary function not found. Make sure lib-loader.js is loaded correctly.");
+        }
     }
 
     initialize();
-
 });
