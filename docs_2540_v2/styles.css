@@ -1,397 +1,305 @@
+/* styles.css */
+
 body {
-    background: #eee;
-    user-select: none;
-    -webkit-user-select: none;
-    /* 한국어 폰트 추가 (선택 사항) */
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Sans KR";
-}
-
-/* Matrix & LED Styles */
-/* #cols-list와 #rows-list는 더 이상 사용되지 않으며, #cols-list-global과 #rows-list-global로 변경되었습니다. */
-#cols-list-global,
-#rows-list-global,
-#leds-matrix {
-    font-family: "Bitstream Vera Sans Mono", Monaco, "Courier New", Courier, monospace;
-    border-spacing: 5px; /* 셀 간의 간격 */
-    border-collapse: separate; /* border-spacing 적용을 위해 필요 */
-}
-
-#leds-matrix .item,
-#cols-list-global .item,
-#rows-list-global .item {
-    width: 25px;
-    min-width: 25px;
-    max-width: 25px;
-
-    height: 25px;
-    min-height: 25px;
-    max-height: 25px;
-
-    cursor: pointer;
-    font-size: 17px;
-    text-align: center; /* 텍스트 정렬 중앙으로 */
-    vertical-align: middle; /* 세로 정렬 중앙으로 */
-    display: table-cell; /* text-align과 vertical-align을 위해 table-cell 사용 */
-}
-
-#leds-matrix .item {
-    border-radius: 50%; /* 원형 모양 */
-    box-shadow: inset 0 0 1px #666666; /* 내부 그림자 */
-    background: #808080 radial-gradient(ellipse at 42% 42%, #999999 0%, #808080 50%); /* 그라데이션 배경 */
-}
-
-#leds-matrix {
+    font-family: sans-serif;
     background-color: #333;
-    box-shadow: 1px 1px 10px #333;
-    /* 매트릭스 전체에 대한 추가적인 스타일 */
-    border-radius: 8px; /* 매트릭스 외부 모서리 둥글게 */
-    padding: 10px; /* 내부 여백 추가 */
+    color: #eee;
+    transition: background-color 0.3s, color 0.3s;
 }
 
-/* LED Color Themes */
-/* 호버 및 액티브 상태의 텍스트 색상 및 굵기 */
-body.red-leds #matrix-toggle:hover,
-body.red-leds #cols-list-global .item:hover,
-body.red-leds #rows-list-global .item:hover,
-body.red-leds #cols-list-global .item.hover,
-body.red-leds #rows-list-global .item.hover {
-    color: #ff3333;
-    font-weight: bold;
+/* Circuit Theme */
+body.circuit-theme {
+    background-color: #2a2a2a; /* Darker background */
+    color: #00ff00; /* Green text for circuit feel */
 }
 
-/* LED 색상 테마별 배경색 및 그라데이션 */
-#red-leds-case,
-body.red-leds #frames .item.active, /* 프레임의 액티브 아이템도 포함 */
-body.red-leds #leds-matrix .item.active { /* 매트릭스 아이템의 액티브 상태 */
-    background: #ff0000 radial-gradient(ellipse at 42% 42%, #ffffff 0%, #ff3300 25%, #ff0000 50%);
+.container-fluid {
+    padding-top: 20px;
 }
 
-body.yellow-leds #matrix-toggle:hover,
-body.yellow-leds #cols-list-global .item:hover,
-body.yellow-leds #rows-list-global .item:hover,
-body.yellow-leds #cols-list-global .item.hover,
-body.yellow-leds #rows-list-global .item.hover {
-    color: #ffcc33;
-    font-weight: bold;
+h1, h3 {
+    color: #fff;
+    margin-top: 0;
 }
 
-#yellow-leds-case,
-body.yellow-leds #frames .item.active,
-body.yellow-leds #leds-matrix .item.active {
-    background: #ffcc00 radial-gradient(ellipse at 42% 42%, #ffffff 0%, #ffcc00 25%, #ffcc00 50%);
+.debug {
+    border-left: 1px dashed #555;
+    padding-left: 15px;
 }
 
-body.green-leds #matrix-toggle:hover,
-body.green-leds #cols-list-global .item:hover,
-body.green-leds #rows-list-global .item:hover,
-body.green-leds #cols-list-global .item.hover,
-body.green-leds #rows-list-global .item.hover {
-    color: #33ff33;
-    font-weight: bold;
+/* Inputs and Buttons */
+input[type="number"],
+input[type="text"] {
+    background-color: #555;
+    border: 1px solid #777;
+    color: #fff;
+    padding: 5px;
+    border-radius: 3px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-#green-leds-case,
-body.green-leds #frames .item.active,
-body.green-leds #leds-matrix .item.active {
-    background: #00ff00 radial-gradient(ellipse at 42% 42%, #ffffff 0%, #00ff33 25%, #00ff00 50%);
+.btn {
+    margin-bottom: 5px;
 }
 
-body.blue-leds #matrix-toggle:hover,
-body.blue-leds #cols-list-global .item:hover,
-body.blue-leds #rows-list-global .item:hover,
-body.blue-leds #cols-list-global .item.hover,
-body.blue-leds #rows-list-global .item.hover {
-    color: #0033ff;
-    font-weight: bold;
+/* LED Matrix Styling */
+#leds-matrix {
+    border-collapse: collapse;
+    background-color: #222;
+    border: 1px solid #444;
+    cursor: pointer;
+    table-layout: fixed;
+    width: 100%; /* Ensure table takes available width */
 }
 
-#blue-leds-case,
-body.blue-leds #frames .item.active,
-body.blue-leds #leds-matrix .item.active {
-    background: #0000ff radial-gradient(ellipse at 42% 42%, #ffffff 0%, #0033ff 25%, #0000ff 50%);
+#leds-matrix td.item {
+    width: 12px; /* Base size, will be adjusted by JS for exact fit */
+    height: 12px; /* Base size, will be adjusted by JS for exact fit */
+    border: 1px solid #444; /* Grid lines */
+    background-color: #333; /* Off state */
+    position: relative;
+    box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.5); /* Subtle inner shadow */
+    transition: background-color 0.1s ease-out, box-shadow 0.1s ease-out;
 }
 
-body.white-leds #matrix-toggle:hover,
-body.white-leds #cols-list-global .item:hover,
-body.white-leds #rows-list-global .item:hover,
-body.white-leds #cols-list-global .item.hover,
-body.white-leds #rows-list-global .item.hover {
-    color: #ffffff;
-    font-weight: bold;
+/* LED Colors */
+body.red-leds #leds-matrix td.item.active { background-color: #ff0000; box-shadow: 0 0 5px #ff0000; }
+body.yellow-leds #leds-matrix td.item.active { background-color: #ffff00; box-shadow: 0 0 5px #ffff00; }
+body.green-leds #leds-matrix td.item.active { background-color: #00ff00; box-shadow: 0 0 5px #00ff00; }
+body.blue-leds #leds-matrix td.item.active { background-color: #0000ff; box-shadow: 0 0 5px #0000ff; }
+body.white-leds #leds-matrix td.item.active { background-color: #ffffff; box-shadow: 0 0 5px #ffffff; }
+
+
+/* Circuit Theme Specifics */
+body.circuit-theme #leds-matrix td.item {
+    border-color: #005500; /* Darker green border */
+    box-shadow: inset 0 0 2px rgba(0, 50, 0, 0.5);
 }
 
-#white-leds-case,
-body.white-leds #frames .item.active,
-body.white-leds #leds-matrix .item.active {
-    background: #ffffff radial-gradient(ellipse at 42% 42%, #ffffff 0%, #eeeeee 25%, #ffffff 50%);
+body.circuit-theme.red-leds #leds-matrix td.item.active { background-color: #ff0000; box-shadow: 0 0 10px #ff0000; }
+body.circuit-theme.yellow-leds #leds-matrix td.item.active { background-color: #ffff00; box-shadow: 0 0 10px #ffff00; }
+body.circuit-theme.green-leds #leds-matrix td.item.active { background-color: #00ff00; box-shadow: 0 0 10px #00ff00; }
+body.circuit-theme.blue-leds #leds-matrix td.item.active { background-color: #0000ff; box-shadow: 0 0 10px #0000ff; }
+body.circuit-theme.white-leds #leds-matrix td.item.active { background-color: #ffffff; box-shadow: 0 0 10px #ffffff; }
+
+
+/* Global Row/Col Indicators */
+#cols-list-global, #rows-list-global {
+    border-collapse: collapse;
+    background-color: #444;
 }
 
-/* Player & Input/Edit Controls */
-#player {
-    display: inline-block;
+#cols-list-global td.item {
+    border: 1px solid #555;
+    padding: 2px 5px;
+    font-size: 0.8em;
+    text-align: center;
+    min-width: 12px; /* Match LED width */
+    color: #bbb;
+}
+
+#rows-list-global td.item {
+    border: 1px solid #555;
+    padding: 2px 5px;
+    font-size: 0.8em;
+    text-align: center;
+    min-height: 12px; /* Match LED height */
+    color: #bbb;
+}
+
+/* Frame display */
+.frames-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    border: 1px solid #555;
     padding: 10px;
+    background-color: #2a2a2a;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.frame-container {
+    border: 2px solid #555;
+    padding: 5px;
+    background-color: #3a3a3a;
+    cursor: pointer;
+    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    flex-shrink: 0; /* Prevent shrinking */
+    display: inline-block; /* For sortable compatibility */
+}
+
+.frame-container.selected {
+    border-color: #007bff; /* Highlight selected frame */
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+}
+
+.frame-grid {
+    border-collapse: collapse;
+    margin: auto; /* Center the grid within its container */
+}
+
+.frame-grid td.sub-frame-cell {
+    padding: 0;
+    border: 1px solid #555; /* Border between sub-frames */
+    vertical-align: top; /* Align sub-frames at the top */
+}
+
+.frame-grid .sub-frame {
+    border-collapse: collapse;
+    background-color: #222;
+}
+
+.frame-grid .sub-frame td.item {
+    width: 6px; /* Smaller cells for frame preview */
+    height: 6px;
+    border: 0.5px solid #444;
+    background-color: #333;
+}
+
+.frame-grid .sub-frame td.item.active {
+    background-color: #ff0000; /* Default active color for frames */
+}
+
+/* This is a crucial rule: ensure the active color for sub-frames always matches the current body theme. */
+body.red-leds .frame-grid .sub-frame td.item.active { background-color: #ff0000; }
+body.yellow-leds .frame-grid .sub-frame td.item.active { background-color: #ffff00; }
+body.green-leds .frame-grid .sub-frame td.item.active { background-color: #00ff00; }
+body.blue-leds .frame-grid .sub-frame td.item.active { background-color: #0000ff; }
+body.white-leds .frame-grid .sub-frame td.item.active { background-color: #ffffff; }
+
+/* Circuit Theme Specific for Frames */
+body.circuit-theme .frame-container {
+    border-color: #00ff00;
+    box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+}
+
+body.circuit-theme .frame-container.selected {
+    border-color: #00ffff; /* Cyan highlight */
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.7);
+}
+
+body.circuit-theme .frame-grid td.sub-frame-cell {
+    border-color: #005500;
+}
+
+body.circuit-theme .frame-grid .sub-frame td.item {
+    border-color: #004400;
+    background-color: #1a1a1a;
+}
+
+/* Output Code Styling */
+pre {
+    background-color: #282c34; /* Atom One Dark background */
+    color: #abb2bf; /* Atom One Dark default text */
+    padding: 15px;
+    border-radius: 5px;
+    overflow-x: auto;
+    max-height: 500px;
+    white-space: pre-wrap; /* Wrap long lines */
+    word-break: break-all; /* Break words to prevent overflow */
+}
+
+code {
+    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; /* Monospaced font for code */
+    font-size: 0.9em;
+}
+
+/* Library Section */
+#sets ul {
+    list-style: none;
+    padding: 0;
+}
+
+#sets li {
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+#sets a {
+    color: #007bff; /* Blue link */
+    text-decoration: none;
+}
+
+#sets a:hover {
+    text-decoration: underline;
+    color: #0056b3; /* Darker blue on hover */
+}
+
+body.circuit-theme #sets a {
+    color: #00ffff; /* Cyan link for circuit theme */
+}
+
+body.circuit-theme #sets a:hover {
+    color: #00cccc;
+}
+
+/* Matrix Global Row/Col Hover Effect */
+#cols-list-global td.item:hover,
+#rows-list-global td.item:hover {
+    background-color: #666;
+    cursor: pointer;
+}
+
+body.circuit-theme #cols-list-global td.item:hover,
+body.circuit-theme #rows-list-global td.item:hover {
+    background-color: #006600;
+}
+
+/* LED Color Selection Cases */
+.leds-case {
+    width: 25px;
+    height: 25px;
+    border: 2px solid #555;
+    border-radius: 50%;
+    display: inline-block;
+    cursor: pointer;
+    margin: 5px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.leds-case:hover {
+    transform: scale(1.1);
+}
+
+.leds-case.active-theme {
+    border-color: #007bff; /* Highlight active theme */
+    box-shadow: 0 0 8px #007bff;
+}
+
+/* Specific colors for cases */
+.leds-case[data-leds-theme="red-leds"] { background-color: #ff0000; }
+.leds-case[data-leds-theme="yellow-leds"] { background-color: #ffff00; }
+.leds-case[data-leds-theme="green-leds"] { background-color: #00ff00; }
+.leds-case[data-leds-theme="blue-leds"] { background-color: #0000ff; }
+.leds-case[data-leds-theme="white-leds"] { background-color: #ffffff; }
+
+body.circuit-theme .leds-case.active-theme {
+    border-color: #00ffff; /* Cyan highlight for active theme in circuit mode */
+    box-shadow: 0 0 10px #00ffff;
+}
+
+/* Ensure matrices are centered and responsive */
+#rows-container-global {
+    display: flex;
+    align-items: center; /* Vertically center row numbers with matrix */
+}
+
+#cols-container-global {
+    display: flex;
+    justify-content: center; /* Horizontally center column numbers with matrix */
+    padding-left: 0; /* Adjust as needed */
+}
+
+/* Play button icons */
+#play-button .glyphicon {
+    margin-right: 5px;
 }
 
 #play-delay-input {
-    height: 25px;
-    width: 65px;
-    padding: 5px;
-    border: 1px solid #ccc; /* 테두리 추가 */
-    border-radius: 4px; /* 둥근 모서리 */
-}
-
-#play-button {
-    height: 35px; /* 버튼 높이 조절 */
-    width: 35px; /* 버튼 너비 조절 */
-    font-size: 18px; /* 아이콘 크기 조절 */
-    border-radius: 5px;
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
-    cursor: pointer;
-    vertical-align: middle; /* 텍스트 입력과 정렬 */
-}
-
-#hex-input {
-    text-align: center;
-    width: 150px;
-    height: 30px;
-    padding: 5px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-#edit-buttons-container {
-    padding: 10px;
-}
-
-#shift-buttons-container {
+    width: 80px;
     display: inline-block;
-    position: relative;
-    box-sizing: content-box;
-    width: 130px;
-    height: 130px;
-    /* 테두리 및 그림자 추가 */
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-    background-color: #f9f9f9;
+    margin-right: 5px;
 }
-
-#insert-button,
-#update-button,
-#delete-button,
-#hex-input-apply { /* Apply 버튼 스타일 추가 */
-    width: 75px;
-    height: 30px;
-    margin: 0 10px;
-    border-radius: 5px;
-    background-color: #e0e0e0;
-    border: 1px solid #bbb;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: bold; /* 폰트 굵기 추가 */
-}
-
-#hex-input-apply {
-    width: 60px; /* Apply 버튼은 좀 더 작게 */
-    margin-left: 5px;
-}
-
-#insert-button:hover,
-#update-button:hover,
-#delete-button:hover,
-#hex-input-apply:hover {
-    background-color: #d0d0d0;
-    border-color: #aaa;
-}
-
-
-#invert-button,
-#shift-up-button,
-#shift-right-button,
-#shift-down-button,
-#shift-left-button {
-    position: absolute;
-    height: 30px;
-    width: 30px;
-    font-size: 15px;
-    box-sizing: border-box;
-    border-radius: 50%; /* 원형 버튼 */
-    background-color: #e8e8e8;
-    border: 1px solid #bbb;
-    cursor: pointer;
-    display: flex; /* 내부 아이콘 중앙 정렬 */
-    justify-content: center;
-    align-items: center;
-}
-
-#invert-button:hover,
-#shift-up-button:hover,
-#shift-right-button:hover,
-#shift-down-button:hover,
-#shift-left-button:hover {
-    background-color: #d8d8d8;
-    border-color: #aaa;
-}
-
-.leds-case { /* LED 색상 선택 버튼 (빨강, 노랑 등) */
-    display: inline-block;
-    width: 25px;
-    height: 25px;
-    cursor: pointer;
-    border-radius: 50%;
-    box-shadow: inset 0 0 1px #333333;
-    background: #cccccc radial-gradient(circle at center, lightgray 0%, darkgray 100%);
-    vertical-align: middle; /* 다른 요소들과 정렬 */
-    margin: 0 2px; /* 간격 추가 */
-}
-
-#leds-matrix .item:hover,
-.leds-case:hover {
-    box-shadow: 0 0 5px #cccccc; /* 호버 시 그림자 강조 */
-    transform: scale(1.05); /* 약간 확대 효과 */
-    transition: all 0.1s ease-in-out; /* 부드러운 전환 */
-}
-
-#circuit-theme {
-    display: inline-block;
-    width: 25px;
-    height: 25px;
-    cursor: pointer;
-    background-image: url('img/circuit-icon.png');
-    background-size: contain; /* 이미지 크기 조절 */
-    background-repeat: no-repeat;
-    margin-left: 25px;
-    vertical-align: middle;
-}
-
-/* Frame List (Animation Frames) - 높이 증가 및 세로 스크롤 적용 */
-#frames {
-    padding: 5px;
-    height: 250px; /* 원하는 높이로 조절 (예: 250px) */
-    overflow-y: auto; /* 내용이 넘칠 때 세로 스크롤바 표시 */
-    text-align: left;
-    border: solid #666666 1px;
-    background: #ccc linear-gradient(#ccc, #aaa);
-    border-radius: 5px; /* 둥근 모서리 추가 */
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.2); /* 내부 그림자 효과 추가 */
-    margin-top: 10px; /* 위쪽 여백 추가 */
-}
-
-#frames .frame-container { /* 각 프레임 컨테이너에 대한 스타일 (클릭 가능 영역) */
-    display: inline-block;
-    margin: 5px; /* 프레임 간 간격 */
-    border: 3px solid transparent; /* 선택 안된 상태에서는 투명 테두리 */
-    vertical-align: top; /* 상단 정렬 */
-    cursor: pointer;
-    border-radius: 5px; /* 프레임 컨테이너 둥근 모서리 */
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.2); /* 은은한 그림자 */
-    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* 부드러운 전환 효과 */
-    background-color: #f0f0f0; /* 컨테이너 배경색 추가 */
-}
-
-#frames .frame-container.selected {
-    border-color: #3399ff; /* 선택된 프레임 테두리 색상 */
-    box-shadow: 0 0 10px rgba(51, 153, 255, 0.5); /* 선택 시 강조 그림자 */
-}
-
-#frames .frame-container:hover {
-    border-color: #66ccff; /* 호버 시 테두리 색상 변경 */
-    box-shadow: 0 0 8px rgba(51, 153, 255, 0.3); /* 호버 시 그림자 */
-}
-
-#frames .frame-grid { /* N x M 모듈을 감싸는 테이블 */
-    border-spacing: 2px;
-    border-collapse: separate;
-    background-color: #333;
-    padding: 2px; /* 모듈 간 간격 조정을 위한 패딩 */
-    border-radius: 3px; /* 약간의 둥근 모서리 */
-}
-
-#frames .sub-frame-cell { /* 각 8x8 모듈이 들어가는 셀 */
-    padding: 0; /* 내부 패딩 제거 */
-    border: none;
-}
-
-#frames .sub-frame { /* 8x8 모듈 자체 (기존 .frame) */
-    margin: 0; /* 내부 마진 제거 */
-    display: inline-block; /* 기존 .frame의 inline-block 유지 */
-    background-color: #333;
-    border-spacing: 1px; /* 작은 픽셀 간격 */
-    border-collapse: separate;
-    border: none; /* 컨테이너에서 테두리를 처리하므로 여기서는 제거 */
-}
-
-#frames .sub-frame .item { /* 8x8 모듈 내의 작은 픽셀 */
-    width: 5px; /* 작은 픽셀 크기 조정 (원래 7px에서 5px로 줄여 더 많은 프레임 표시) */
-    height: 5px;
-    border-radius: 50%;
-    box-shadow: inset 0 0 1px #333333;
-    background: #808080;
-}
-
-
-/* Code Output - 높이 원복 */
-#output {
-    font-family: "Bitstream Vera Sans Mono", Monaco, "Courier New", Courier, monospace;
-    resize: vertical; /* 사용자가 세로로만 크기 조절 가능하도록 */
-    padding: 10px; /* 내부 여백 증가 */
-    height: 280px; /* 원래 높이 유지 */
-    /* min-height와 max-height는 제거하여 고정 높이 */
-    overflow-y: auto; /* 스크롤바 자동 표시 */
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
-    line-height: 1.4; /* 줄 간격 조절 */
-    background-color: #f8f8f8;
-    color: #333;
-}
-
-/* Themes*/
-.circuit-theme #circuit {
-    background-image: url('img/circuit.jpg');
-    background-size: cover; /* 배경 이미지 전체 채우기 */
-    background-position: center; /* 배경 이미지 중앙 정렬 */
-    padding: 5px;
-}
-
-.circuit-theme #matrix {
-    color: white;
-    border: solid 1px #547eae;
-    background-color: #26477a;
-    box-shadow: 10px 10px 10px #333;
-    margin: 10px;
-}
-
-.circuit-theme #leds-container {
-    border: solid 1px #808080;
-}
-
-.circuit-theme #player,
-.circuit-theme #shift-buttons-container,
-.circuit-theme #edit-buttons-container {
-    background-color: #26477a;
-    border: solid 1px #547eae;
-    box-shadow: 10px 10px 10px #333;
-    padding: 10px; /* 내부 여백 추가 */
-    border-radius: 8px; /* 둥근 모서리 */
-}
-
-.circuit-theme #player label,
-.circuit-theme #ms,
-.circuit-theme #shift-buttons-container label,
-.circuit-theme #edit-buttons-container label {
-    color: white;
-}
-
-/* Bootstrap 오버라이드 (선택 사항) */
-/*
-.btn {
-    border-radius: 5px;
-}
-.form-control {
-    border-radius: 4px;
-}
-*/
