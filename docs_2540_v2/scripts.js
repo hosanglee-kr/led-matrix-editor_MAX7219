@@ -1,3 +1,4 @@
+// (2025-04-29) 소스코드 출력시 컴파일 오류 유발하는 유니코드 공백문자, byte order mark 등을 빠짐없이 제거해줘.
 $(function () {
     var $body = $('body');
     var $frames = $('#frames');
@@ -97,13 +98,10 @@ $(function () {
         subPatternTo8x8Frame: function (pattern) {
             var out = ['<table class="frame sub-frame" data-hex="' + pattern + '">'];
             for (var i = 0; i < 8; i++) { // 0-7 로우
-                var byte = pattern.substr((7 - i) * 2, 2); // pattern의 16진수 문자열이 "Col7Col6...Col0" 순서이므로, Col0(가장 오른쪽 바이트)부터 읽으려면 인덱스 계산을 반대로 해야 함.
-                                                            // 예: Col0의 2글자는 (16-2)=14 인덱스부터, Col1은 (16-4)=12 인덱스부터. (14 - i*2)
-                byte = parseInt(byte, 16);
-
                 out.push('<tr>');
                 for (var j = 0; j < 8; j++) { // 0-7 컬럼
-                    if ((byte & (1 << j))) { // LSB (y=0) first
+                    var byte = parseInt(pattern.substr(j * 2, 2), 16);
+                    if ((byte & (1 << i))) {
                         out.push('<td class="item active"></td>');
                     } else {
                         out.push('<td class="item"></td>');
@@ -115,33 +113,38 @@ $(function () {
             return out.join('');
         },
 
+        // N x M 매트릭스에 대한 중첩 배열 (예: IMAGES[프레임][모듈][8]) 출력
         patternsToCodeCppByteArray: function (allFramesPatterns) {
             var numModules = NUM_COLS_MATRIX * NUM_ROWS_MATRIX;
-            var out = ['const byte IMAGES[' + allFramesPatterns.length + '][' + (numModules * 8) + '] = {\n'];
+            var out = ['const uint8_t IMAGES[' + allFramesPatterns.length + '][' + numModules + '][8] = {\n'];
 
             for (var i = 0; i < allFramesPatterns.length; i++) {
                 var currentFrameHex = allFramesPatterns[i];
                 var modulePatterns = currentFrameHex.split('|');
 
-                out.push('  {');
+                out.push('{\n'); // 각 프레임 시작
                 for (var m = 0; m < numModules; m++) {
                     var pattern = modulePatterns[m] || '0000000000000000';
 
-                    // C++ Byte Array는 보통 컬럼별 바이트 (8바이트)를 순서대로 나열하므로
-                    // 16진수 패턴에서 각 컬럼의 바이트를 추출하여 추가
-                    for (var j = 0; j < 8; j++) { // j=0 -> Col7, j=1 -> Col6, ... j=7 -> Col0
-                        var byteStr = pattern.substr(j * 2, 2);
-                        var byteVal = parseInt(byteStr, 16);
-                        out.push('0x' + ('00' + byteVal.toString(16)).slice(-2).toUpperCase());
-                        if (!(m === numModules - 1 && j === 7)) {
+                    out.push('  {'); // 각 모듈 시작 (8바이트)
+                    for (var j = 0; j < 8; j++) { // j는 컬럼 인덱스 (0-7)
+                        var hexByteStr = pattern.substr(j * 2, 2);
+                        var byteVal = parseInt(hexByteStr, 16);
+
+                        var binaryString = '0b' + ('00000000' + byteVal.toString(2)).slice(-8);
+                        out.push(binaryString);
+                        if (j < 7) {
                             out.push(', ');
                         }
                     }
+                    out.push('}'); // 각 모듈 끝
                     if (m < numModules - 1) {
-                        out.push(' ');
+                        out.push(',\n');
+                    } else {
+                        out.push('\n');
                     }
                 }
-                out.push('}');
+                out.push('}'); // 각 프레임 끝
                 if (i < allFramesPatterns.length - 1) {
                     out.push(',\n');
                 } else {
@@ -181,22 +184,24 @@ $(function () {
                 var currentFrameHex = allFramesPatterns[i];
                 var modulePatterns = currentFrameHex.split('|');
 
-                out.push('  [');
+                out.push('  ['); // 각 프레임 시작
                 for (var m = 0; m < numModules; m++) {
                     var pattern = modulePatterns[m] || '0000000000000000';
+                    out.push('['); // 각 모듈 시작 (8바이트)
                     for (var j = 0; j < 8; j++) {
                         var byteStr = pattern.substr(j * 2, 2);
                         var byteVal = parseInt(byteStr, 16);
                         out.push('0x' + ('00' + byteVal.toString(16)).slice(-2).toUpperCase());
-                        if (!(m === numModules - 1 && j === 7)) {
+                        if (j < 7) {
                             out.push(', ');
                         }
                     }
+                    out.push(']'); // 각 모듈 끝
                     if (m < numModules - 1) {
-                        out.push(' ');
+                        out.push(', ');
                     }
                 }
-                out.push(']');
+                out.push(']'); // 각 프레임 끝
                 if (i < allFramesPatterns.length - 1) {
                     out.push(',\n');
                 } else {
@@ -238,19 +243,13 @@ $(function () {
                 fixedParts.push(('0000000000000000' + p).substr(-16));
             }
             return fixedParts.join('|');
-        },
-        fixPatterns: function (patterns) {
-            for (var i = 0; i < patterns.length; i++) {
-                patterns[i] = converter.fixPattern(patterns[i]);
-            }
-            return patterns;
         }
     };
 
     function makeFrameElement(fullPattern) {
         fullPattern = converter.fixPattern(fullPattern);
         var $frame = $(converter.patternToFrame(fullPattern));
-        $frame.click(onFrameClick); // 이벤트 핸들러를 여기서 바인딩
+        $frame.click(onFrameClick);
         return $frame;
     }
 
@@ -265,18 +264,15 @@ $(function () {
                     var moduleCoords = getModuleCoords(c, r);
                     if (moduleCoords) {
                         var moduleIndex = moduleCoords.moduleIndex;
-                        var localX = moduleCoords.localX; // 모듈 내의 X (0-7)
-                        var localY = moduleCoords.localY; // 모듈 내의 Y (0-7)
+                        var localX = moduleCoords.localX;
+                        var localY = moduleCoords.localY;
 
                         var currentModulePattern = moduleHexPatterns[moduleIndex];
-                        // 패턴은 "Col7Col6...Col0" 순서의 16진수 문자열
-                        // localX는 0-7, 0이 가장 오른쪽 컬럼 (Col0)
-                        // 따라서 (7 - localX) * 2 로 인덱스를 계산해야 올바른 컬럼 바이트에 접근
-                        var byteCharIndex = (7 - localX) * 2; // Col7에 해당하는 2글자가 인덱스 0,1 / Col0에 해당하는 2글자가 인덱스 14,15
+                        var byteCharIndex = localX * 2;
                         
                         var currentByte = parseInt(currentModulePattern.substr(byteCharIndex, 2), 16);
                         
-                        currentByte |= (1 << localY); // localY 위치의 비트를 1로 설정
+                        currentByte |= (1 << localY);
 
                         moduleHexPatterns[moduleIndex] = currentModulePattern.substr(0, byteCharIndex) +
                                                           ('00' + currentByte.toString(16)).slice(-2).toUpperCase() +
@@ -286,9 +282,7 @@ $(function () {
             }
         }
         $hexInput.val(moduleHexPatterns.join('|'));
-        // NOTE: ledsToHex()는 단지 현재 LED 상태를 HEX 입력 필드에 반영하고 반환하는 역할만 합니다.
-        // saveState()는 별도로 필요한 시점에 호출합니다.
-        return moduleHexPatterns.join('|'); // 현재 HEX 값 반환
+        return moduleHexPatterns.join('|');
     }
 
     function hexInputToLeds() {
@@ -303,24 +297,22 @@ $(function () {
 
             var moduleRow = Math.floor(m / NUM_COLS_MATRIX);
             var moduleCol = m % NUM_COLS_MATRIX;
-            var startGlobalX = moduleCol * 8; // 시작 전역 X (모듈의 첫 컬럼)
-            var startGlobalY = moduleRow * 8; // 시작 전역 Y (모듈의 첫 로우)
+            var startGlobalX = moduleCol * 8;
+            var startGlobalY = moduleRow * 8;
 
-            // hex 패턴이 Col7Col6...Col0 순서이므로, Col0부터 처리하려면 14- (i*2) 인덱스
             for (var i = 0; i < 8; i++) { // i는 local column index (0-7)
-                var byte = parseInt(modulePattern.substr((7 - i) * 2, 2), 16); // pattern.substr(14,2)는 col0, pattern.substr(0,2)는 col7
+                var byte = parseInt(modulePattern.substr(i * 2, 2), 16);
                 
                 for (var j = 0; j < 8; j++) { // j는 local row index (0-7)
-                    if ((byte & (1 << j))) { // LSB (y=0) 부터 확인
-                        var globalX = startGlobalX + i; // i가 localX 역할 (컬럼 인덱스)
-                        var globalY = startGlobalY + j; // j가 localY 역할 (로우 인덱스)
+                    if ((byte & (1 << j))) {
+                        var globalX = startGlobalX + i;
+                        var globalY = startGlobalY + j;
                         $leds.find('.item[data-row=' + (globalY + 1) + '][data-col=' + (globalX + 1) + ']').addClass('active');
                     }
                 }
             }
         }
     }
-
 
     var savedHashState;
 
@@ -333,30 +325,27 @@ $(function () {
             if (outputLanguage === "arduino") {
                 if (outputFormatType === "byte") {
                     code = converter.patternsToCodeCppByteArray(patterns);
-                } else { // hex
+                } else {
                     code = converter.patternsToCodeCppHexArray(patterns);
                 }
             } else if (outputLanguage === "javascript") {
                 if (outputFormatType === "byte") {
                     code = converter.patternsToCodeJSByteArray(patterns);
-                } else { // hex
+                } else {
                     code = converter.patternsToCodeJSHexArray(patterns);
                 }
             }
             // 유니코드 공백문자 및 BOM 제거
             if (code) {
-                // 제어 문자(C0, C1) 및 BOM (U+FEFF) 제거
                 code = code.replace(/[\u0000-\u001F\u007F-\u009F\uFEFF]/g, '');
-                // 폰트 파일 등에 사용되는 널 문자 제거 (추가적으로)
                 code = code.replace(/\0/g, '');
-                // 콤마 뒤의 유니코드 공백 (예: U+200B Zero Width Space) 제거
                 code = code.replace(/,\s*([\u200B\u200C\u200D\u2060\uFEFF])+/g, ',');
             }
             $('#output').val(code);
             hljs.highlightElement($('#output')[0]);
         } else {
-            $('#output').val(''); // 프레임이 없으면 출력창 비우기
-            hljs.highlightElement($('#output')[0]); // 하이라이트 새로고침
+            $('#output').val('');
+            hljs.highlightElement($('#output')[0]);
         }
     }
 
@@ -380,22 +369,17 @@ $(function () {
         var frame;
         var patterns = savedHashState.split(';');
 
-        // 프레임이 없거나 빈 문자열만 있는 경우 빈 프레임 추가
         if (patterns.length === 1 && patterns[0] === '') {
-            patterns = []; // 빈 패턴 배열로 초기화
+            patterns = [];
         }
 
-        // URL 해시가 비어있으면 초기 빈 프레임 생성
         if (patterns.length === 0) {
             insertNewEmptyFrame();
-            // insertNewEmptyFrame()이 이미 클릭 이벤트 핸들러를 바인딩하므로 다시 makeFrameElement로 감쌀 필요 없음
             var $firstFrame = $frames.find('.frame-container').first();
-            processToSave($firstFrame); // 새 프레임 선택 및 상태 저장
-            hexInputToLeds(); // LED 매트릭스 업데이트
+            processToSave($firstFrame);
+            hexInputToLeds();
             return;
         }
-
-        patterns = converter.fixPatterns(patterns);
 
         for (var i = 0; i < patterns.length; i++) {
             frame = makeFrameElement(patterns[i]);
@@ -403,8 +387,8 @@ $(function () {
         }
         var $firstFrame = $frames.find('.frame-container').first();
         if ($firstFrame.length) {
-            processToSave($firstFrame); // 첫 프레임 선택 및 상태 저장
-            hexInputToLeds(); // 선택된 프레임을 LED 매트릭스에 그리기
+            processToSave($firstFrame);
+            hexInputToLeds();
         }
     }
 
@@ -415,9 +399,9 @@ $(function () {
     // 애니메이션 프레임 클릭 이벤트 핸들러
     function onFrameClick() {
         var $clickedFrameContainer = $(this);
-        $hexInput.val($clickedFrameContainer.attr('data-hex')); // HEX 입력 필드 업데이트
-        processToSave($clickedFrameContainer); // 선택 상태 변경 및 상태 저장
-        hexInputToLeds(); // **선택된 프레임의 패턴을 주 매트릭스에 반영**
+        $hexInput.val($clickedFrameContainer.attr('data-hex'));
+        processToSave($clickedFrameContainer);
+        hexInputToLeds();
     }
 
     function processToSave($focusToFrame) {
@@ -427,14 +411,13 @@ $(function () {
             $focusToFrame.addClass('selected');
             $deleteButton.removeAttr('disabled');
             $updateButton.removeAttr('disabled');
-            // 프레임 선택 시 HEX 입력 필드에 값 반영
             $hexInput.val($focusToFrame.attr('data-hex'));
         } else {
             $deleteButton.attr('disabled', 'disabled');
             $updateButton.attr('disabled', 'disabled');
-            $hexInput.val(''); // 선택된 프레임이 없으면 HEX 입력 필드 비우기
+            $hexInput.val('');
         }
-        saveState(); // 프레임 선택/변경 시 코드 업데이트 및 URL 해시 저장
+        saveState();
     }
 
     function drawMatrixUI() {
@@ -449,8 +432,7 @@ $(function () {
         $rowsGlobal = $('#rows-list-global');
         $leds = $('#leds-matrix');
 
-        // 기존 .off('mousedown') 제거 (불필요한 중복 방지)
-        $colsGlobal.find('.item').mousedown(function () {
+        $colsGlobal.on('mousedown', '.item', function () {
             var col = parseInt($(this).attr('data-col'));
             var allActiveInCol = true;
             for (var r = 1; r <= TOTAL_PIXEL_ROWS; r++) {
@@ -460,11 +442,11 @@ $(function () {
                 }
             }
             $leds.find('.item[data-col=' + col + ']').toggleClass('active', !allActiveInCol);
-            ledsToHex(); // LED 상태 변경 시 HEX 업데이트
-            saveState(); // 상태 변경 시 저장
+            ledsToHex();
+            saveState();
         });
 
-        $rowsGlobal.find('.item').mousedown(function () {
+        $rowsGlobal.on('mousedown', '.item', function () {
             var row = parseInt($(this).attr('data-row'));
             var allActiveInRow = true;
             for (var c = 1; c <= TOTAL_PIXEL_COLS; c++) {
@@ -474,18 +456,17 @@ $(function () {
                 }
             }
             $leds.find('.item[data-row=' + row + ']').toggleClass('active', !allActiveInRow);
-            ledsToHex(); // LED 상태 변경 시 HEX 업데이트
-            saveState(); // 상태 변경 시 저장
+            ledsToHex();
+            saveState();
         });
 
-        $leds.find('.item').mousedown(function () {
+        $leds.on('mousedown', '.item', function () {
             $(this).toggleClass('active');
-            ledsToHex(); // LED 클릭 시에도 즉시 HEX 업데이트
-            saveState(); // 상태 변경 시 저장
+            ledsToHex();
+            saveState();
         });
 
-        hexInputToLeds(); // UI 로드/재구성 시 HEX 값을 LED에 반영
-        // saveState(); // drawMatrixUI에서 saveState를 호출할 필요 없음. loadState에서 이미 처리.
+        hexInputToLeds();
     }
 
     $numColsMatrix.on('change', function () {
@@ -497,46 +478,39 @@ $(function () {
 
     $applyMatrixSizeButton.click(function () {
         drawMatrixUI();
-        // 매트릭스 크기 변경 시, 현재 편집 매트릭스 상태를 바탕으로 빈 프레임을 업데이트
-        // 또는 기존 프레임이 있다면 해당 프레임의 크기도 반영되도록 조정 필요
-        // 여기서는 일단 빈 프레임을 생성하고 현재 매트릭스를 그립니다.
         var $selectedFrame = $frames.find('.frame-container.selected').first();
         if ($selectedFrame.length) {
-            // 현재 선택된 프레임이 있다면 그 패턴을 새 매트릭스에 적용
             var currentHex = $selectedFrame.attr('data-hex');
-            // 새 매트릭스 크기에 맞게 패턴을 재조정 (모듈 개수 변경 시 중요)
-            var newPaddedHex = converter.fixPattern(currentHex); // 새 N, M에 맞게 패턴 길이 조절
+            var newPaddedHex = converter.fixPattern(currentHex);
             $hexInput.val(newPaddedHex);
             hexInputToLeds();
-            $selectedFrame.attr('data-hex', newPaddedHex); // data-hex도 업데이트
-            // UI의 프레임 미리보기도 업데이트
-            $selectedFrame.replaceWith(makeFrameElement(newPaddedHex));
-            // 교체된 새 프레임을 다시 선택된 상태로 만듦
-            processToSave($frames.find('.frame-container[data-hex="' + newPaddedHex + '"]').first());
-
+            $selectedFrame.attr('data-hex', newPaddedHex);
+            
+            var $updatedFrameElement = makeFrameElement(newPaddedHex);
+            $selectedFrame.replaceWith($updatedFrameElement);
+            
+            processToSave($updatedFrameElement);
         } else {
-            // 선택된 프레임이 없다면 (초기 상태이거나 모두 삭제된 경우)
-            // 현재 편집 매트릭스의 빈 상태를 기본 프레임으로 삽입
             var $newFrame = insertNewEmptyFrame();
             processToSave($newFrame);
-            hexInputToLeds(); // 새 빈 프레임을 에디터에 반영
+            hexInputToLeds();
         }
-        saveState(); // 변경된 상태 저장
+        saveState();
     });
 
     $hexInputApplyButton.click(function () {
         var newHexValue = getInputHexValue();
-        $hexInput.val(newHexValue); // 입력된 HEX 값 정규화하여 다시 필드에 표시
-        hexInputToLeds(); // HEX 값에 따라 LED 매트릭스 업데이트
+        $hexInput.val(newHexValue);
+        hexInputToLeds();
         var $selectedFrame = $frames.find('.frame-container.selected').first();
         if ($selectedFrame.length) {
             $selectedFrame.attr('data-hex', newHexValue);
-            // 기존 프레임을 제거하고 새로운 프레임으로 교체 (UI 업데이트)
-            $selectedFrame.replaceWith(makeFrameElement(newHexValue));
-            // 교체된 새 프레임을 다시 선택된 상태로 만듦
-            processToSave($frames.find('.frame-container[data-hex="' + newHexValue + '"]').first());
+            var $updatedFrameElement = makeFrameElement(newHexValue);
+            $selectedFrame.replaceWith($updatedFrameElement);
+            
+            processToSave($updatedFrameElement);
         }
-        saveState(); // HEX 입력 적용 후 상태 저장
+        saveState();
     });
 
     function insertNewEmptyFrame() {
@@ -547,38 +521,13 @@ $(function () {
         return $newFrame;
     }
 
-    $('#invert-button').click(function () { // off('click') 제거
+    $('#invert-button').click(function () {
         $leds.find('.item').toggleClass('active');
         ledsToHex();
-        saveState(); // 상태 변경 시 저장
+        saveState();
     });
 
-    $('#shift-up-button').click(function () { // off('click') 제거
-        var currentFullPattern = getInputHexValue();
-        var modulePatterns = currentFullPattern.split('|');
-        var newModulePatterns = Array(modulePatterns.length).fill('');
-
-        for (var m = 0; m < modulePatterns.length; m++) {
-            var pattern = modulePatterns[m];
-            var bytes = [];
-            // 현재 패턴은 Col7Col6...Col0 순서
-            for (var j = 0; j < 8; j++) { // j=0 -> Col7, j=1 -> Col6, ... j=7 -> Col0
-                bytes.push(parseInt(pattern.substr(j * 2, 2), 16));
-            }
-
-            var newBytes = Array(8).fill(0);
-            for (var b = 0; b < 8; b++) { // 각 컬럼 바이트를 위로 한 칸 시프트 (비트를 왼쪽으로 시프트)
-                newBytes[b] = (bytes[b] << 1) & 0xFF;
-            }
-            // 원래 Col7Col6...Col0 순서로 다시 조합 (pattern.substr(j*2,2)와 동일하게)
-            newModulePatterns[m] = newBytes.map(b => ('00' + b.toString(16)).substr(-2).toUpperCase()).join('');
-        }
-        $hexInput.val(newModulePatterns.join('|'));
-        hexInputToLeds();
-        saveState(); // 상태 변경 시 저장
-    });
-
-    $('#shift-down-button').click(function () { // off('click') 제거
+    $('#shift-up-button').click(function () {
         var currentFullPattern = getInputHexValue();
         var modulePatterns = currentFullPattern.split('|');
         var newModulePatterns = Array(modulePatterns.length).fill('');
@@ -592,16 +541,39 @@ $(function () {
 
             var newBytes = Array(8).fill(0);
             for (var b = 0; b < 8; b++) {
-                newBytes[b] = bytes[b] >> 1; // 비트를 오른쪽으로 시프트
+                newBytes[b] = (bytes[b] << 1) & 0xFF;
             }
             newModulePatterns[m] = newBytes.map(b => ('00' + b.toString(16)).substr(-2).toUpperCase()).join('');
         }
         $hexInput.val(newModulePatterns.join('|'));
         hexInputToLeds();
-        saveState(); // 상태 변경 시 저장
+        saveState();
     });
 
-    $('#shift-right-button').click(function () { // off('click') 제거
+    $('#shift-down-button').click(function () {
+        var currentFullPattern = getInputHexValue();
+        var modulePatterns = currentFullPattern.split('|');
+        var newModulePatterns = Array(modulePatterns.length).fill('');
+
+        for (var m = 0; m < modulePatterns.length; m++) {
+            var pattern = modulePatterns[m];
+            var bytes = [];
+            for (var j = 0; j < 8; j++) {
+                bytes.push(parseInt(pattern.substr(j * 2, 2), 16));
+            }
+
+            var newBytes = Array(8).fill(0);
+            for (var b = 0; b < 8; b++) {
+                newBytes[b] = bytes[b] >> 1;
+            }
+            newModulePatterns[m] = newBytes.map(b => ('00' + b.toString(16)).substr(-2).toUpperCase()).join('');
+        }
+        $hexInput.val(newModulePatterns.join('|'));
+        hexInputToLeds();
+        saveState();
+    });
+
+    $('#shift-right-button').click(function () {
         var currentFullPattern = getInputHexValue();
         var modulePatterns = currentFullPattern.split('|');
         var newModulePatterns = Array(modulePatterns.length).fill('');
@@ -609,31 +581,29 @@ $(function () {
         for (var m = 0; m < modulePatterns.length; m++) {
             var pattern = modulePatterns[m];
             
-            // 모듈의 8x8 LED 상태를 읽어서 2차원 배열로 변환
             var currentModuleLeds = [];
-            for (var c = 0; c < 8; c++) { // 0-7 컬럼
-                var byte = parseInt(pattern.substr((7 - c) * 2, 2), 16); // pattern은 Col7...Col0 순이므로 역순으로 바이트 가져오기
+            for (var c = 0; c < 8; c++) {
+                var byte = parseInt(pattern.substr(c * 2, 2), 16);
                 currentModuleLeds[c] = [];
-                for (var r = 0; r < 8; r++) { // 0-7 로우
+                for (var r = 0; r < 8; r++) {
                     currentModuleLeds[c][r] = !!(byte & (1 << r));
                 }
             }
 
             var shiftedLeds = [];
-            for (var c = 0; c < 8; c++) { // 새 컬럼
+            for (var c = 0; c < 8; c++) {
                 shiftedLeds[c] = [];
-                for (var r = 0; r < 8; r++) { // 새 로우
-                    if (c === 0) { // 가장 왼쪽 컬럼은 0으로 채움
+                for (var r = 0; r < 8; r++) {
+                    if (c === 0) {
                         shiftedLeds[c][r] = false;
-                    } else { // 이전 컬럼의 값을 가져옴
+                    } else {
                         shiftedLeds[c][r] = currentModuleLeds[c - 1][r];
                     }
                 }
             }
 
-            // 시프트된 LED 배열을 다시 HEX 패턴으로 변환
             var out = [];
-            for (var c = 0; c < 8; c++) { // Col0부터 Col7까지
+            for (var c = 0; c < 8; c++) {
                 var newByte = 0;
                 for (var r = 0; r < 8; r++) {
                     if (shiftedLeds[c][r]) {
@@ -642,17 +612,14 @@ $(function () {
                 }
                 out.push(('00' + newByte.toString(16)).substr(-2).toUpperCase());
             }
-            // patternToFrame의 subPatternTo8x8Frame이 "Col7Col6...Col0" 순서로 바이트를 기대하므로
-            // 여기서는 out을 뒤집지 않고 그대로 사용 (이미 Col0부터 out에 추가했기 때문)
-            newModulePatterns[m] = out.join(''); // Col0...Col7 순서로 조립
+            newModulePatterns[m] = out.join('');
         }
         $hexInput.val(newModulePatterns.join('|'));
         hexInputToLeds();
-        saveState(); // 상태 변경 시 저장
+        saveState();
     });
 
-
-    $('#shift-left-button').click(function () { // off('click') 제거
+    $('#shift-left-button').click(function () {
         var currentFullPattern = getInputHexValue();
         var modulePatterns = currentFullPattern.split('|');
         var newModulePatterns = Array(modulePatterns.length).fill('');
@@ -660,31 +627,29 @@ $(function () {
         for (var m = 0; m < modulePatterns.length; m++) {
             var pattern = modulePatterns[m];
             
-            // 모듈의 8x8 LED 상태를 읽어서 2차원 배열로 변환
             var currentModuleLeds = [];
-            for (var c = 0; c < 8; c++) { // 0-7 컬럼
-                var byte = parseInt(pattern.substr((7 - c) * 2, 2), 16); // pattern은 Col7...Col0 순이므로 역순으로 바이트 가져오기
+            for (var c = 0; c < 8; c++) {
+                var byte = parseInt(pattern.substr(c * 2, 2), 16);
                 currentModuleLeds[c] = [];
-                for (var r = 0; r < 8; r++) { // 0-7 로우
+                for (var r = 0; r < 8; r++) {
                     currentModuleLeds[c][r] = !!(byte & (1 << r));
                 }
             }
 
             var shiftedLeds = [];
-            for (var c = 0; c < 8; c++) { // 새 컬럼
+            for (var c = 0; c < 8; c++) {
                 shiftedLeds[c] = [];
-                for (var r = 0; r < 8; r++) { // 새 로우
-                    if (c === 7) { // 가장 오른쪽 컬럼은 0으로 채움
+                for (var r = 0; r < 8; r++) {
+                    if (c === 7) {
                         shiftedLeds[c][r] = false;
-                    } else { // 다음 컬럼의 값을 가져옴
+                    } else {
                         shiftedLeds[c][r] = currentModuleLeds[c + 1][r];
                     }
                 }
             }
 
-            // 시프트된 LED 배열을 다시 HEX 패턴으로 변환
             var out = [];
-            for (var c = 0; c < 8; c++) { // Col0부터 Col7까지
+            for (var c = 0; c < 8; c++) {
                 var newByte = 0;
                 for (var r = 0; r < 8; r++) {
                     if (shiftedLeds[c][r]) {
@@ -693,21 +658,20 @@ $(function () {
                 }
                 out.push(('00' + newByte.toString(16)).substr(-2).toUpperCase());
             }
-            newModulePatterns[m] = out.join(''); // Col0...Col7 순서로 조립
+            newModulePatterns[m] = out.join('');
         }
         $hexInput.val(newModulePatterns.join('|'));
         hexInputToLeds();
-        saveState(); // 상태 변경 시 저장
+        saveState();
     });
 
-
-    $hexInput.keyup(function (event) { // off('keyup') 제거
-        if (event.keyCode === 13) { // Enter key
+    $hexInput.keyup(function (event) {
+        if (event.keyCode === 13) {
             $hexInputApplyButton.click();
         }
     });
 
-    $deleteButton.click(function () { // off('click') 제거
+    $deleteButton.click(function () {
         var $selectedFrame = $frames.find('.frame-container.selected').first();
         var $nextFrame = $selectedFrame.next('.frame-container').first();
 
@@ -719,14 +683,14 @@ $(function () {
 
         if (!$frames.find('.frame-container').length) {
             insertNewEmptyFrame();
-            $nextFrame = $frames.find('.frame-container').first(); // 새로 생성된 프레임
+            $nextFrame = $frames.find('.frame-container').first();
         }
 
-        processToSave($nextFrame); // 삭제 후 새로운 프레임 선택 및 상태 저장
-        hexInputToLeds(); // 새롭게 선택된 프레임을 LED 매트릭스에 그리기
+        processToSave($nextFrame);
+        hexInputToLeds();
     });
 
-    $insertButton.click(function () { // off('click') 제거
+    $insertButton.click(function () {
         var $newFrame = makeFrameElement(getInputHexValue());
         var $selectedFrame = $frames.find('.frame-container.selected').first();
 
@@ -737,37 +701,34 @@ $(function () {
         }
 
         processToSave($newFrame);
-        // hexInputToLeds(); // processToSave 내부에서 호출되므로 불필요
     });
 
-    $updateButton.click(function () { // off('click') 제거
+    $updateButton.click(function () {
         var $selectedFrame = $frames.find('.frame-container.selected').first();
         if ($selectedFrame.length) {
-            var currentHex = ledsToHex(); // 현재 LED 매트릭스 상태를 HEX로 변환하고 hexInput에도 업데이트
+            var currentHex = ledsToHex();
             
-            $selectedFrame.attr('data-hex', currentHex); // 선택된 프레임의 data-hex 업데이트
-            // 기존 프레임을 제거하고 새로운 프레임으로 교체 (UI 업데이트)
-            // (makeFrameElement는 클릭 이벤트를 다시 바인딩하므로 이 방식이 안전합니다.)
+            $selectedFrame.attr('data-hex', currentHex);
             var $updatedFrameElement = makeFrameElement(currentHex);
             $selectedFrame.replaceWith($updatedFrameElement);
             
-            processToSave($updatedFrameElement); // 업데이트된 새 프레임을 다시 선택된 상태로 만듦
+            processToSave($updatedFrameElement);
         }
     });
 
     // 출력 언어 라디오 버튼 변경 시
-    $('input[name="output_lang"]').change(function () { // off('change') 제거
+    $('input[name="output_lang"]').change(function () {
         var patterns = framesToPatterns();
         printCode(patterns);
     });
 
-    // 출력 형식 라디오 버튼 변경 시 (새로 추가)
-    $('input[name="output_format_type"]').change(function () { // off('change') 제거
+    // 출력 형식 라디오 버튼 변경 시
+    $('input[name="output_format_type"]').change(function () {
         var patterns = framesToPatterns();
         printCode(patterns);
     });
 
-    $('#matrix-toggle').hover(function () { // off('hover') 제거
+    $('#matrix-toggle').hover(function () {
         $colsGlobal.find('.item').addClass('hover');
         $rowsGlobal.find('.item').addClass('hover');
     }, function () {
@@ -775,40 +736,37 @@ $(function () {
         $rowsGlobal.find('.item').removeClass('hover');
     });
 
-    $('#matrix-toggle').mousedown(function () { // off('mousedown') 제거
+    $('#matrix-toggle').mousedown(function () {
         var totalLeds = TOTAL_PIXEL_COLS * TOTAL_PIXEL_ROWS;
         $leds.find('.item').toggleClass('active', $leds.find('.item.active').length !== totalLeds);
         ledsToHex();
-        saveState(); // 상태 변경 시 저장
+        saveState();
     });
 
-    $('#circuit-theme').click(function () { // off('click') 제거
+    $('#circuit-theme').click(function () {
         if ($body.hasClass('circuit-theme')) {
             $body.removeClass('circuit-theme');
-            // Cookies.set('page-theme', 'plain-theme', {path: ''}); // 주석 처리된 상태 유지
         } else {
             $body.addClass('circuit-theme');
-            // Cookies.set('page-theme', 'circuit-theme', {path: ''}); // 주석 처리된 상태 유지
         }
     });
 
-    $('.leds-case').click(function () { // off('click') 제거
+    $('.leds-case').click(function () {
         var themeName = $(this).attr('data-leds-theme');
         setLedsTheme(themeName);
-        // Cookies.set('leds-theme', themeName, {path: ''}); // 주석 처리된 상태 유지
     });
 
     function setLedsTheme(themeName) {
         $body.removeClass('red-leds yellow-leds green-leds blue-leds white-leds').addClass(themeName);
     }
 
-    function setPageTheme(themeName) {
-        $body.removeClass('plain-theme circuit-theme').addClass(themeName);
-    }
+    // function setPageTheme(themeName) {
+    //     $body.removeClass('plain-theme circuit-theme').addClass(themeName);
+    // }
 
     var playInterval;
 
-    $('#play-button').click(function () { // off('click') 제거
+    $('#play-button').click(function () {
         if (playInterval) {
             $('#play-button-stop').hide();
             $('#play-button-play').show();
@@ -820,30 +778,29 @@ $(function () {
 
             var $allFrames = $frames.find('.frame-container');
             if ($allFrames.length === 0) {
-                // 재생할 프레임이 없으면 재생 시작 안함
                 $('#play-button-stop').hide();
                 $('#play-button-play').show();
                 return;
             }
 
-            var currentIndex = $allFrames.index($frames.find('.frame-container.selected').first());
-            if (currentIndex === -1) { // 선택된 프레임이 없으면 첫 프레임부터 시작
+            var $selectedFrame = $frames.find('.frame-container.selected').first();
+            var currentIndex = $allFrames.index($selectedFrame);
+            if (currentIndex === -1) {
                 currentIndex = 0;
-            } else {
-                currentIndex = (currentIndex + 1) % $allFrames.length; // 현재 선택된 다음 프레임부터 시작
             }
+            
+            var nextPlayIndex = currentIndex;
 
             playInterval = setInterval(function () {
-                var $nextFrame = $allFrames.eq(currentIndex);
+                var $nextFrame = $allFrames.eq(nextPlayIndex);
 
                 if ($nextFrame.length) {
                     $hexInput.val($nextFrame.attr('data-hex'));
+                    processToSave($nextFrame);
+                    hexInputToLeds();
                 }
 
-                processToSave($nextFrame); // 프레임 전환 시 선택 상태 및 상태 저장
-                hexInputToLeds(); // **애니메이션 프레임을 주 매트릭스에 반영**
-
-                currentIndex = (currentIndex + 1) % $allFrames.length;
+                nextPlayIndex = (nextPlayIndex + 1) % $allFrames.length;
             }, $('#play-delay-input').val());
         }
     });
@@ -869,16 +826,11 @@ $(function () {
         drawMatrixUI();
         loadState();
 
-        // Cookies 관련 주석 처리된 코드 (원래 없으므로 그대로 유지)
-        // var ledsTheme = Cookies.get('leds-theme');
-        // if (ledsTheme) {
-        //     setLedsTheme(ledsTheme);
-        // }
-
+        // 페이지 테마 로드
         // var pageTheme = Cookies.get('page-theme') || 'circuit-theme';
         // setPageTheme(pageTheme);
     }
 
-    initialize(); // 페이지 로드 시 초기화 함수 호출
+    initialize();
 
 });
