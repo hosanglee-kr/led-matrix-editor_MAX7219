@@ -2,7 +2,8 @@ $(function () {
     var $body = $('body');
     var $frames = $('#frames');
     var $hexInput = $('#hex-input');
-    var $insertButton = $('#$('#insert-button');
+    var $insertButton = $('#insert-button');
+//    var $insertButton = $('#$('#insert-button');
     var $deleteButton = $('#delete-button');
     var $updateButton = $('#update-button');
     var $numColsMatrix = $('#num-cols-matrix');
